@@ -3,40 +3,16 @@ import express from 'express';
 import cors from 'cors';
 import { join } from "path";
 import ejs from "ejs";
-// import { loadEnvFile} from 'node:process';
-import { MongoClient, ServerApiVersion, ObjectId } from 'mongodb';
+import { ObjectId } from 'mongodb';
 import schedule from 'node-schedule'
 import path from "path";
 import { fileURLToPath } from "url";
+import clientPromise from "../lib/mongo.js";
 
 const __filename = fileURLToPath(import.meta.url);
 export const __dirname = path.dirname(__filename);
 
-// if (!process.env.DATABASE_URL) {
-//   loadEnvFile();
-// } else {
-//   // vercel loads env  
-// }
-
 const app = express();
-// const PORT = process.env.PORT || 3000;
-
-const uri = process.env.DATABASE_URL;
-
-if (!uri) {
-  throw new Error("DATABASE_URL");
-}
-// async function run() {
-//   try {
-//     await client.connect();
-//     await client.db("blogs").command({ ping: 1 });
-//     console.log("connected to db!");
-//   } catch (e) {
-//     throw e;
-//   }
-// }
-
-// run().catch(console.dir);
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -52,14 +28,7 @@ const insertBlog = async (blog: {
 }) => {
 
 
-  const client = await new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    }
-  });
-
+  const client = await clientPromise;
 
   await client.db("blogs").collection('inventory').insertOne({
     title: blog.title,
@@ -137,15 +106,7 @@ app.get('/styles.css', (_, res) => {
 
 app.get("/articles", async (_, res) => {
 
-
-  const client = await new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    }
-  });
-
+  const client = await clientPromise;
 
   await client.db("blogs").collection('inventory').find().toArray().then((articles) => {
     res.json(articles.map((article) => ({
@@ -172,16 +133,7 @@ app.get("/article/:id", async (req, res) => {
   if (!id) {
     return res.status(404).send("Article ID is required");
   }
-
-
-  const client = await new MongoClient(uri, {
-    serverApi: {
-      version: ServerApiVersion.v1,
-      strict: true,
-      deprecationErrors: true,
-    }
-  });
-
+  const client = await clientPromise;
 
   await client.db("blogs").collection('inventory').findOne({ _id: new ObjectId(id) }).then((article) => {
     if (!article) {
